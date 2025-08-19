@@ -1,0 +1,29 @@
+{
+  "name": "aplii-landing",
+  "version": "1.0.0",
+  "description": "Landing page for Aplii - The First AI Operating System",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && node scripts/deploy-amplify.js"
+  },
+  "keywords": [
+    "ai",
+    "operating-system",
+    "aplii",
+    "interactive",
+    "components"
+  ],
+  "author": "Aplii Team",
+  "license": "MIT",
+  "devDependencies": {
+    "terser": "^5.43.1",
+    "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "@clerk/clerk-js": "^5.86.0",
+    "lucide-react": "^0.540.0"
+  }
+}
