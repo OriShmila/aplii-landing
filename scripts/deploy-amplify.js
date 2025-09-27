@@ -12,8 +12,11 @@ const environment = process.argv[2];
 
 if (!environment) {
   console.error("❌ Error: Environment parameter is required");
-  console.log("Usage: npm run deploy <environment>");
-  console.log("Example: npm run deploy dev");
+  console.log("Usage: npm run deploy:dev or npm run deploy:prod");
+  console.log("Or: node scripts/deploy-amplify.js <branch>");
+  console.log("Examples:");
+  console.log("  npm run deploy:dev   # deploys to 'dev' branch");
+  console.log("  npm run deploy:prod  # deploys to 'prod' branch");
   process.exit(1);
 }
 
@@ -74,11 +77,14 @@ async function deployToAmplify() {
     // Deploy to Amplify using AWS CLI
     console.log("🚀 Starting AWS Amplify deployment...");
 
-    // First, get the app ID and branch name (you may need to customize these)
-    const appName = `aplii-landing-${environment}`;
+    // Always use same app name, deploy to different branches
+    const appName = "aplii-landing";
+    const branchName = environment; // dev, prod, etc.
     const region = process.env.AWS_DEFAULT_REGION || "us-east-1";
 
-    console.log(`📡 Looking for Amplify app: ${appName} in region: ${region}`);
+    console.log(
+      `📡 Looking for Amplify app: ${appName} (branch: ${branchName}) in region: ${region}`
+    );
 
     try {
       // List apps to find the app ID
@@ -94,17 +100,17 @@ async function deployToAmplify() {
         appId = targetApp.appId;
         console.log(`✅ Found app ID: ${appId}`);
 
-        // Check if main branch exists
+        // Check if target branch exists
         try {
           await execAsync(
-            `aws amplify get-branch --app-id ${appId} --branch-name main --region ${region}`
+            `aws amplify get-branch --app-id ${appId} --branch-name ${branchName} --region ${region}`
           );
-          console.log("✅ Main branch exists");
+          console.log(`✅ Branch '${branchName}' exists`);
         } catch (branchError) {
-          console.log("🌿 Main branch not found, creating it...");
-          const createBranchCommand = `aws amplify create-branch --app-id ${appId} --branch-name main --region ${region}`;
+          console.log(`🌿 Branch '${branchName}' not found, creating it...`);
+          const createBranchCommand = `aws amplify create-branch --app-id ${appId} --branch-name ${branchName} --region ${region}`;
           await execAsync(createBranchCommand);
-          console.log("✅ Created main branch");
+          console.log(`✅ Created branch '${branchName}'`);
         }
       } else {
         console.log(`⚠️  App '${appName}' not found. Available apps:`);
@@ -120,11 +126,11 @@ async function deployToAmplify() {
         appId = createdApp.app.appId;
         console.log(`✅ Created new app with ID: ${appId}`);
 
-        // Create the main branch for the new app
-        console.log("🌿 Creating main branch...");
-        const createBranchCommand = `aws amplify create-branch --app-id ${appId} --branch-name main --region ${region}`;
+        // Create the target branch for the new app
+        console.log(`🌿 Creating ${branchName} branch...`);
+        const createBranchCommand = `aws amplify create-branch --app-id ${appId} --branch-name ${branchName} --region ${region}`;
         await execAsync(createBranchCommand);
-        console.log("✅ Created main branch");
+        console.log(`✅ Created ${branchName} branch`);
       }
 
       // Use a simpler approach - directly deploy the zip file
@@ -139,13 +145,15 @@ async function deployToAmplify() {
         const appData = JSON.parse(appOutput);
 
         console.log(`📋 App details: ${appData.app.name}`);
-        console.log(`🌐 Default domain: https://main.${appId}.amplifyapp.com`);
+        console.log(
+          `🌐 ${branchName} domain: https://${branchName}.${appId}.amplifyapp.com`
+        );
 
         // Check for running jobs and stop them if needed
         console.log("🔍 Checking for running deployments...");
         try {
           const { stdout: jobsOutput } = await execAsync(
-            `aws amplify list-jobs --app-id ${appId} --branch-name main --region ${region} --max-results 5`
+            `aws amplify list-jobs --app-id ${appId} --branch-name ${branchName} --region ${region} --max-results 5`
           );
           const jobs = JSON.parse(jobsOutput);
 
@@ -161,7 +169,7 @@ async function deployToAmplify() {
               console.log(`🛑 Stopping job: ${job.jobId} (${job.status})`);
               try {
                 await execAsync(
-                  `aws amplify stop-job --app-id ${appId} --branch-name main --job-id ${job.jobId} --region ${region}`
+                  `aws amplify stop-job --app-id ${appId} --branch-name ${branchName} --job-id ${job.jobId} --region ${region}`
                 );
                 console.log(`✅ Stopped job: ${job.jobId}`);
               } catch (stopError) {
@@ -185,7 +193,7 @@ async function deployToAmplify() {
         console.log("🚀 Creating manual deployment...");
 
         // Use aws amplify create-deployment for manual zip uploads
-        const deployCommand = `aws amplify create-deployment --app-id ${appId} --branch-name main --region ${region}`;
+        const deployCommand = `aws amplify create-deployment --app-id ${appId} --branch-name ${branchName} --region ${region}`;
         const { stdout: deployOut } = await execAsync(deployCommand);
 
         console.log("📋 Raw deployment output:");
@@ -204,7 +212,6 @@ async function deployToAmplify() {
 
           // Start the deployment using execSync for better control
           console.log("🚀 Starting Amplify deployment...");
-          const branchName = "main";
           const jobId = deploymentData.jobId;
           const env = { ...process.env, AWS_DEFAULT_REGION: region };
 
@@ -240,7 +247,7 @@ async function deployToAmplify() {
           if (status === "SUCCEED") {
             console.log("🎉 Deployment completed successfully!");
             console.log(
-              `🌐 Your app is live at: https://main.${appId}.amplifyapp.com`
+              `🌐 Your app is live at: https://${branchName}.${appId}.amplifyapp.com`
             );
           } else if (status === "FAILED" || status === "CANCELLED") {
             throw new Error(`Deployment ${status.toLowerCase()}`);
@@ -303,8 +310,12 @@ async function deployToAmplify() {
       console.log(
         "3. Check your AWS region is set correctly (default: us-east-1)"
       );
-      console.log(`4. The app name will be: aplii-landing-${environment}`);
-      console.log("5. If app doesn't exist, it will be created automatically");
+      console.log(
+        `4. The app name will be: aplii-landing (branch: ${environment})`
+      );
+      console.log(
+        "5. If app/branch doesn't exist, it will be created automatically"
+      );
     }
 
     process.exit(1);
