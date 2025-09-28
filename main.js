@@ -1,61 +1,9 @@
 // Main JavaScript for Aplii Landing Page
-import { Clerk } from "@clerk/clerk-js";
 
-/*
-🚀 CLERK SETUP INSTRUCTIONS:
-1. Go to https://dashboard.clerk.com and create an account
-2. Create a new application
-3. In your Clerk Dashboard, go to "API Keys" 
-4. Copy your "Publishable key" 
-5. Add it to your .env file as: VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
-6. Enable "Waitlist" mode in Dashboard > User & Authentication > Restrictions
-7. Under "Sign-up modes", toggle on "Waitlist"
-
-✅ Environment variable detected! Using VITE_CLERK_PUBLISHABLE_KEY from .env
-*/
-
-// Initialize Clerk with environment variable
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-// Validate environment variable
-if (!clerkPublishableKey) {
-  console.error(
-    "❌ VITE_CLERK_PUBLISHABLE_KEY not found in environment variables!"
-  );
-  console.error(
-    "Make sure you have VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx in your .env file"
-  );
-} else if (!clerkPublishableKey.startsWith("pk_")) {
-  console.error(
-    '❌ Invalid Clerk publishable key format. Key should start with "pk_test_" or "pk_live_"'
-  );
-} else {
-  console.log(
-    "✅ Clerk publishable key found:",
-    clerkPublishableKey.substring(0, 20) + "..."
-  );
-}
-
-const clerk = clerkPublishableKey ? new Clerk(clerkPublishableKey) : null;
+// Clerk removed: no initialization required
 
 // Smooth scrolling for navigation links
 document.addEventListener("DOMContentLoaded", async function () {
-  // Initialize Clerk
-  if (clerk) {
-    try {
-      await clerk.load();
-      console.log("✅ Clerk loaded successfully");
-    } catch (error) {
-      console.error("❌ Error loading Clerk:", error);
-      console.error(
-        "Check your Clerk Dashboard settings and ensure Waitlist mode is enabled"
-      );
-    }
-  } else {
-    console.error(
-      "❌ Clerk not initialized due to missing or invalid publishable key"
-    );
-  }
   // Handle smooth scrolling for anchor links
   const links = document.querySelectorAll('a[href^="#"]');
 
@@ -184,122 +132,17 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.head.appendChild(style);
 
   // Create particles periodically
-  setInterval(createParticle, 3000);
+  setInterval(createParticle, 3010);
 
-  // Individual CTA button handlers with specific parameters
-  function setupCTAButton(selector, params = {}) {
-    const button = document.querySelector(selector);
-    if (!button) return;
-
-    // Hover effects
-    button.addEventListener("mouseenter", function () {
-      this.style.transform = "translateY(-3px) scale(1.05)";
-      this.style.boxShadow = "0 15px 35px rgba(102, 126, 234, 0.4)";
-    });
-
-    button.addEventListener("mouseleave", function () {
-      this.style.transform = "translateY(-2px) scale(1)";
-      this.style.boxShadow = "0 10px 25px rgba(102, 126, 234, 0.3)";
-    });
-
-    // Click handler with specific parameters
+  // Redirect all CTA buttons to the app
+  document.querySelectorAll(".cta-button").forEach((button) => {
     button.addEventListener("click", function (e) {
       e.preventDefault();
-
-      // Add ripple effect
-      const ripple = document.createElement("span");
-      const rect = this.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height);
-      const x = e.clientX - rect.left - size / 2;
-      const y = e.clientY - rect.top - size / 2;
-
-      ripple.style.width = ripple.style.height = size + "px";
-      ripple.style.left = x + "px";
-      ripple.style.top = y + "px";
-      ripple.style.position = "absolute";
-      ripple.style.borderRadius = "50%";
-      ripple.style.background = "rgba(255, 255, 255, 0.3)";
-      ripple.style.transform = "scale(0)";
-      ripple.style.animation = "ripple 0.6s linear";
-      ripple.style.pointerEvents = "none";
-
-      this.appendChild(ripple);
-
-      setTimeout(() => {
-        ripple.remove();
-      }, 600);
-
-      // Track event with specific parameters
-      trackEvent("waitlist_opened", {
-        button_text: this.textContent.trim(),
-        button_source: this.dataset.source || params.source || "unknown",
-        button_priority: this.dataset.priority || params.priority || "normal",
-        button_action: this.dataset.action || params.action || "waitlist",
-        timestamp: new Date().toISOString(),
-      });
-
-      // Open waitlist with specific parameters
-      setTimeout(() => {
-        if (clerk && clerk.openWaitlist) {
-          const waitlistParams = {
-            signInUrl: "https://app.aplii.ai",
-            afterJoinWaitlistUrl:
-              window.location.href +
-              "?joined=true&source=" +
-              (this.dataset.source || params.source),
-            ...params.waitlistOptions,
-          };
-          clerk.openWaitlist(waitlistParams);
-        } else {
-          // Fallback if Clerk isn't loaded yet
-          alert(
-            "Join the Aplii waitlist! We'll notify you when early access is available."
-          );
-        }
-      }, 100);
+      window.location.href = "https://app.aplii.ai";
     });
-  }
-
-  // Setup each CTA button with specific parameters
-  setupCTAButton('[data-source="header"]', {
-    source: "header",
-    priority: "high",
-    waitlistOptions: {
-      // Header-specific waitlist options can go here
-    },
   });
 
-  setupCTAButton('[data-source="hero"]', {
-    source: "hero",
-    priority: "highest",
-    waitlistOptions: {
-      // Hero-specific waitlist options can go here
-    },
-  });
-
-  setupCTAButton('[data-source="cta-section"]', {
-    source: "cta-section",
-    priority: "medium",
-    waitlistOptions: {
-      // CTA section-specific waitlist options can go here
-    },
-  });
-
-  // Add ripple animation CSS
-  const rippleStyle = document.createElement("style");
-  rippleStyle.textContent = `
-    @keyframes ripple {
-      to {
-        transform: scale(4);
-        opacity: 0;
-      }
-    }
-    .cta-button {
-      position: relative;
-      overflow: hidden;
-    }
-  `;
-  document.head.appendChild(rippleStyle);
+  // Ripple effect removed with Clerk waitlist
 
   // Simple analytics tracking (placeholder)
   function trackEvent(eventName, eventData = {}) {
@@ -310,71 +153,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Track page load
   trackEvent("page_view", { page: "landing" });
 
-  // Track successful waitlist joins (when user returns with joined=true)
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("joined") === "true") {
-    const source = urlParams.get("source") || "unknown";
-    trackEvent("waitlist_joined", {
-      timestamp: new Date().toISOString(),
-      source: source,
-      conversion_path: source + "_to_waitlist",
-    });
-    // Show success message with source info
-    showWaitlistSuccessMessage(source);
-  }
-
-  // Function to show success message with source tracking
-  function showWaitlistSuccessMessage(source = "unknown") {
-    const successMessage = document.createElement("div");
-    successMessage.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 1rem 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-      z-index: 10000;
-      font-weight: 600;
-      animation: slideInRight 0.5s ease-out;
-    `;
-
-    const sourceMessages = {
-      header: "Thanks for joining from the header!",
-      hero: "Welcome to the Aplii revolution!",
-      "cta-section": "Excited to have you join the future!",
-      unknown: "Thanks for joining the Aplii waitlist!",
-    };
-
-    successMessage.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span>🎉</span>
-        <span>${sourceMessages[source] || sourceMessages.unknown}</span>
-      </div>
-      <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 5px;">
-        We'll notify you when early access is available.
-      </div>
-    `;
-
-    // Add animation
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(successMessage);
-
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      successMessage.style.animation = "slideInRight 0.5s ease-out reverse";
-      setTimeout(() => successMessage.remove(), 500);
-    }, 5000);
-  }
+  // Waitlist join success handling removed
 
   // Track feature card interactions
   document.querySelectorAll(".feature-card").forEach((card) => {

@@ -1,6 +1,24 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "directory-index",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          // Handle /terms/privacy -> /terms/privacy/index.html
+          if (req.url === "/terms/privacy") {
+            req.url = "/terms/privacy.html";
+          } else if (req.url === "/terms/cookies") {
+            req.url = "/terms/cookies.html";
+          } else if (req.url === "/terms/service") {
+            req.url = "/terms/service.html";
+          }
+          next();
+        });
+      },
+    },
+  ],
   root: ".",
   build: {
     outDir: "dist",
@@ -16,7 +34,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3010,
     open: true,
     host: true,
   },
